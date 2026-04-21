@@ -37,7 +37,6 @@ def solve_ambulance_milp(num_ambulances, ambulance_posts, c, b, J_k):
 
     Constraints:
       sum_j x[i][j] = 1            for all i   (each ambulance assigned once)
-      sum_i x[i][j] <= 1           for all j   (at most one ambulance per post)
       sum_{i, j in J_k[k]} x[i][j] >= y[k]    (coverage linkage)
 
     Returns:
@@ -66,15 +65,6 @@ def solve_ambulance_milp(num_ambulances, ambulance_posts, c, b, J_k):
             row[i * num_posts + j] = 1.0
         rows.append(row)
         lbs.append(1.0)
-        ubs.append(1.0)
-
-    # At most one ambulance per post
-    for j in range(num_posts):
-        row = np.zeros(n_vars)
-        for i in range(num_ambulances):
-            row[i * num_posts + j] = 1.0
-        rows.append(row)
-        lbs.append(0.0)
         ubs.append(1.0)
 
     # Coverage linkage: sum_{i, j in J_k[k]} x[i][j] - y[k] >= 0

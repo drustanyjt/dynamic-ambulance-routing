@@ -100,10 +100,10 @@ def calculate_b_centroid(ambulance_posts, t, sample_points, map_bounds, num_ambu
     """
     Centroid-adjusted benefit for each grid point at timestep t.
 
-    Steps:
-      1. Compute raw Gaussian intensities.
-      2. Run weighted k-means (k=num_ambulances) on the grid.
-      3. b'_k = max(intensity_k - dist(point_k, nearest_centroid), 0)
+    b'_k = (share of calls at p_k) * (distance saved at p_k)
+         = (intensity_k / sum(intensity)) * max(R_{g(k)} - dist(p_k, c_{g(k)}), 0)
+
+    where R_g is the max distance from centroid c_g to any member of cluster g.
 
     Returns: (b_adjusted, centroids, labels)
     """
@@ -117,10 +117,19 @@ def calculate_b_centroid(ambulance_posts, t, sample_points, map_bounds, num_ambu
     centroids = kmeans.cluster_centers_
     labels = kmeans.labels_
 
+    total = weights.sum()
+    call_share = weights / total if total > 0 else np.zeros_like(weights)
+
     distances = np.array([
         math.dist(pts[k], centroids[labels[k]])
         for k in range(len(pts))
     ])
-    b_adjusted = np.maximum(raw_b - distances, 0)
+    cluster_radii = np.array([
+        distances[labels == g].max() if np.any(labels == g) else 0.0
+        for g in range(num_ambulances)
+    ])
+    distance_saved = np.maximum(cluster_radii[labels] - distances, 0.0)
+
+    b_adjusted = call_share * distance_saved
 
     return b_adjusted, centroids, labels
